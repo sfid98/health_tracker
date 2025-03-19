@@ -108,21 +108,17 @@ app.put("/api/users/:userId/medications/:medicationId", async (req, res) => {
 // Endpoint per aggiornare la data di ultima ricarica
 app.put("/api/users/:userId/medications/:medicationId/remainingPills/:remainingPills/refill", async (req, res) => {
   try {
-    const { userId, medicationId, remainingPills, totalPerBox } = req.params;
-    // Trova il farmaco e aggiorna la data di ultima ricarica
-    const medication = await Medication.findOneAndUpdate(
-      { _id: medicationId, userId },
-      { 
-        lastRefillDate: new Date().toISOString().split("T")[0], // Formato YYYY-MM-DD
-        availableSinceLastRefill: Number(remainingPills) + Number(totalPerBox)
-      },
-      { new: true }
-    );
+    const { userId, medicationId, remainingPills } = req.params;
+
+    const medication = await Medication.findOne({ _id: medicationId, userId });
 
     if (!medication) {
       return res.status(404).send("Farmaco non trovato o non associato a questo utente.");
     }
-
+    console.log(medication)
+    medication.lastRefillDate = new Date().toISOString().split("T")[0];
+    medication.availableSinceLastRefill = Number(remainingPills) + Number(medication.totalPerBox);
+    await medication.save();
 
     res.status(200).send(medication);
   } catch (error) {

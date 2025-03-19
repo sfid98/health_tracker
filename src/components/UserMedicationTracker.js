@@ -86,7 +86,7 @@ const UserMedicationTracker = () => {
                   <strong>Totale per scatola:</strong> {med.totalPerBox}
                 </p>
                 <p className="card-text">
-                  <strong>Disponibili:</strong> {calculateRemainingPills(med) + med.availableSinceLastRefill} 
+                  <strong>Disponibili:</strong> {calculateRemainingPills(med)} 
                 </p>
                 <p className="card-text">
                   <strong>Data ultima ricarica:</strong> {med.lastRefillDate}

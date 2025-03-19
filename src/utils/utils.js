@@ -15,7 +15,9 @@ export const calculateRemainingPills = (medication) => {
     for (let i = 0; i < daysRemaining; i++) {
       pillsConsumed += pillsWeek[days[i]] || 0;
     }
-
-    return Math.max(0, totalPerBox - pillsConsumed);
+    if (!medication.availableSinceLastRefill) {
+      medication.availableSinceLastRefill = totalPerBox;
+    }
+    return Math.max(0, medication.availableSinceLastRefill - pillsConsumed  );
   };
 
