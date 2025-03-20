@@ -92,6 +92,19 @@ const EditMedicationModal = ({ isOpen, onRequestClose, medication, onSave }) => 
           />
         </div>
         <div className="mb-3">
+          <label htmlFor="availableSinceLastRefill" className="form-label">Numero compresse disponibili prima dell'ultima ricarica</label>
+          <input
+            type="number"
+            id="availableSinceLastRefill"
+            name="availableSinceLastRefill"
+            value={editedMedication.availableSinceLastRefill}
+            onChange={handleInputChange}
+            className="form-control"
+            required
+          />
+        </div>
+
+        <div className="mb-3">
           <label htmlFor="lastRefillDate" className="form-label">Data Ultima Ricarica</label>
           <input
             type="date"

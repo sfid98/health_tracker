@@ -64,3 +64,12 @@ export const updateMedication = async (userId, medicationId, updatedMedication) 
       throw error;
     }
   };
+
+  export const deleteMedication = async (userId, medicationId) => {  
+    try {
+      await axios.delete(`${API_BASE_URL}/users/${userId}/medications/${medicationId}`);
+    } catch (error) {
+      console.error("Errore durante l'eliminazione del farmaco:", error);
+      throw error;
+    }
+  }

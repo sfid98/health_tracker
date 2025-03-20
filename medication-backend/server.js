@@ -127,6 +127,23 @@ app.put("/api/users/:userId/medications/:medicationId/remainingPills/:remainingP
   }
 });
 
+app.delete("/api/users/:userId/medications/:medicationId", async (req, res) => {
+  try {
+    const { userId, medicationId } = req.params;
+    const medication = await Medication.findOneAndDelete({
+      _id: medicationId,
+      userId: userId,
+    });
+
+    if (!medication) {
+      return res.status(404).send("Farmaco non trovato o non associato a questo utente.");
+    }
+    res.status(200).send({ message: "Farmaco eliminato con successo.", medication });
+  } catch (error) {
+    console.error("Errore durante l'eliminazione del farmaco:", error);
+    res.status(500).send("Errore durante l'eliminazione del farmaco.");
+  }
+});
 
 // Avvia il server
 const PORT = process.env.PORT || 5000;

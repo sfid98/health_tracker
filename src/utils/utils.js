@@ -18,6 +18,6 @@ export const calculateRemainingPills = (medication) => {
     if (!medication.availableSinceLastRefill) {
       medication.availableSinceLastRefill = totalPerBox;
     }
-    return Math.max(0, medication.availableSinceLastRefill - pillsConsumed  );
+    return Math.max(0, medication.availableSinceLastRefill - pillsConsumed);
   };
 
