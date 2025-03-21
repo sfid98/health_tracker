@@ -53,10 +53,10 @@ export const updateMedication = async (userId, medicationId, updatedMedication) 
   };
 
 
-  export const refillMedication = async (userId, medicationId, remainingPills) => {
+  export const refillMedication = async (userId, medicationId, remainingPills, numOfBox) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/users/${userId}/medications/${medicationId}/remainingPills/${remainingPills}/refill`
+        `${API_BASE_URL}/users/${userId}/medications/${medicationId}/remainingPills/${remainingPills}/numOfBox/${numOfBox}/refill`
       );
       return response.data;
     } catch (error) {

@@ -1,8 +1,12 @@
 import React from "react";
-import Modal from "react-modal";
-//import "../EditMedicationModal.css"; // Importa il file CSS
-
-Modal.setAppElement("#root"); // Imposta l'elemento root per accessibilità
+import {
+  Modal,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+} from "@mui/material";
 
 const EditMedicationModal = ({ isOpen, onRequestClose, medication, onSave }) => {
   const [editedMedication, setEditedMedication] = React.useState({
@@ -38,93 +42,103 @@ const EditMedicationModal = ({ isOpen, onRequestClose, medication, onSave }) => 
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(editedMedication); // Debug
     onSave(editedMedication);
     onRequestClose();
   };
 
   return (
     <Modal
-      isOpen={isOpen}
-      onRequestClose={onRequestClose}
-      shouldFocusAfterRender={true} // Assicura che il focus venga gestito correttamente
-      contentLabel="Modifica Farmaco"
-
+      open={isOpen}
+      onClose={onRequestClose}
+      aria-labelledby="edit-medication-modal"
+      aria-describedby="edit-medication-description"
     >
-      <h2>Modifica Farmaco</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label htmlFor="name" className="form-label">Nome Farmaco</label>
-          <input
-            type="text"
-            id="name"
+      <Box
+        sx={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: 400,
+          bgcolor: "background.paper",
+          border: "2px solid #000",
+          boxShadow: 24,
+          p: 4,
+        }}
+      >
+        <Typography id="edit-medication-modal" variant="h6" component="h2" gutterBottom>
+          Modifica Farmaco
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <TextField
+            label="Nome Farmaco"
             name="name"
             value={editedMedication.name}
             onChange={handleInputChange}
-            className="form-control"
+            fullWidth
+            margin="normal"
             required
           />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Consumo Settimanale</label>
-          {Object.keys(editedMedication.pillsWeek).map((day) => (
-            <div key={day} className="input-group mb-2">
-              <span className="input-group-text">{day}</span>
-              <input
-                type="number"
-                value={editedMedication.pillsWeek[day]}
-                onChange={(e) => handlePillsWeekChange(day, e.target.value)}
-                className="form-control"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="mb-3">
-          <label htmlFor="totalPerBox" className="form-label">Totale per Scatola</label>
-          <input
-            type="number"
-            id="totalPerBox"
+
+          <Typography variant="body1" gutterBottom>
+            Consumo Settimanale
+          </Typography>
+          <Grid container spacing={2}>
+            {Object.keys(editedMedication.pillsWeek).map((day) => (
+              <Grid item xs={6} key={day}>
+                <TextField
+                  label={day}
+                  type="number"
+                  value={editedMedication.pillsWeek[day]}
+                  onChange={(e) => handlePillsWeekChange(day, e.target.value)}
+                  fullWidth
+                />
+              </Grid>
+            ))}
+          </Grid>
+
+          <TextField
+            label="Totale per Scatola"
             name="totalPerBox"
+            type="number"
             value={editedMedication.totalPerBox}
             onChange={handleInputChange}
-            className="form-control"
+            fullWidth
+            margin="normal"
             required
           />
-        </div>
-        <div className="mb-3">
-          <label htmlFor="availableSinceLastRefill" className="form-label">Numero compresse disponibili prima dell'ultima ricarica</label>
-          <input
-            type="number"
-            id="availableSinceLastRefill"
-            name="availableSinceLastRefill"
-            value={editedMedication.availableSinceLastRefill}
-            onChange={handleInputChange}
-            className="form-control"
-            required
-          />
-        </div>
 
-        <div className="mb-3">
-          <label htmlFor="lastRefillDate" className="form-label">Data Ultima Ricarica</label>
-          <input
-            type="date"
-            id="lastRefillDate"
+          <TextField
+            label="Data Ultima Ricarica"
             name="lastRefillDate"
+            type="date"
             value={editedMedication.lastRefillDate}
             onChange={handleInputChange}
-            className="form-control"
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
             required
           />
-        </div>
-        <button type="submit" className="btn btn-primary">Salva Modifiche</button>
-        <button
-          type="button"
-          className="btn btn-secondary ms-2"
-          onClick={onRequestClose}
-        >
-          Annulla
-        </button>
-      </form>
+
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              type="submit"
+              sx={{ mr: 2 }}
+            >
+              Salva Modifiche
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={onRequestClose}
+            >
+              Annulla
+            </Button>
+          </Box>
+        </form>
+      </Box>
     </Modal>
   );
 };

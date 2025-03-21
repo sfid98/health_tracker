@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { fetchUsers } from "../services/api";
-import "bootstrap/dist/css/bootstrap.min.css";
+import {
+  Container,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Button,
+} from "@mui/material";
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
@@ -16,19 +24,29 @@ const UserList = () => {
   }, []);
 
   return (
-    <div className="container my-4">
-      <h1 className="text-center mb-4">Elenco Utenti</h1>
-      <ul className="list-group">
+    <Container maxWidth="sm" style={{ marginTop: "2rem" }}>
+      <Typography variant="h4" component="h1" align="center" gutterBottom>
+        Elenco Utenti
+      </Typography>
+      <List>
         {users.map((user) => (
-          <li key={user._id} className="list-group-item d-flex justify-content-between align-items-center">
-            {user.name}
-            <Link to={`/user/${user._id}`} className="btn btn-primary btn-sm">
-              Visualizza Farmaci
-            </Link>
-          </li>
+          <ListItem key={user._id} divider>
+            <ListItemText primary={user.name} />
+            <ListItemSecondaryAction>
+              <Button
+                component={Link}
+                to={`/user/${user._id}/medications`}
+                variant="contained"
+                color="primary"
+                size="small"
+              >
+                Visualizza Farmaci
+              </Button>
+            </ListItemSecondaryAction>
+          </ListItem>
         ))}
-      </ul>
-    </div>
+      </List>
+    </Container>
   );
 };
 

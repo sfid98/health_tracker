@@ -1,6 +1,12 @@
 import React from "react";
-import Modal from "react-modal";
-Modal.setAppElement("#root"); // Imposta l'elemento root per accessibilità
+import {
+  Modal,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+} from "@mui/material";
 
 const AddMedicationModal = ({ isOpen, onRequestClose, onSave }) => {
   const [newMedication, setNewMedication] = React.useState({
@@ -37,61 +43,85 @@ const AddMedicationModal = ({ isOpen, onRequestClose, onSave }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onRequestClose={onRequestClose}
-      contentLabel="Aggiungi Farmaco"
+      open={isOpen}
+      onClose={onRequestClose}
+      aria-labelledby="add-medication-modal"
+      aria-describedby="add-medication-description"
     >
-      <h2>Aggiungi Farmaco</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label htmlFor="name" className="form-label">Nome Farmaco</label>
-          <input
-            type="text"
-            id="name"
+      <Box
+        sx={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: 400,
+          bgcolor: "background.paper",
+          border: "2px solid #000",
+          boxShadow: 24,
+          p: 4,
+        }}
+      >
+        <Typography id="add-medication-modal" variant="h6" component="h2" gutterBottom>
+          Aggiungi Farmaco
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <TextField
+            label="Nome Farmaco"
             name="name"
             value={newMedication.name}
             onChange={handleInputChange}
-            className="form-control"
+            fullWidth
+            margin="normal"
             required
           />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Consumo Settimanale</label>
-          {Object.keys(newMedication.pillsWeek).map((day) => (
-            <div key={day} className="input-group mb-2">
-              <span className="input-group-text">{day}</span>
-              <input
-                type="number"
-                value={newMedication.pillsWeek[day]}
-                onChange={(e) => handlePillsWeekChange(day, e.target.value)}
-                className="form-control"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="mb-3">
-          <label htmlFor="totalPerBox" className="form-label">Totale per Scatola</label>
-          <input
-            type="number"
-            id="totalPerBox"
+
+          <Typography variant="body1" gutterBottom>
+            Consumo Settimanale
+          </Typography>
+          <Grid container spacing={2}>
+            {Object.keys(newMedication.pillsWeek).map((day) => (
+              <Grid item xs={6} key={day}>
+                <TextField
+                  label={day}
+                  type="number"
+                  value={newMedication.pillsWeek[day]}
+                  onChange={(e) => handlePillsWeekChange(day, e.target.value)}
+                  fullWidth
+                />
+              </Grid>
+            ))}
+          </Grid>
+
+          <TextField
+            label="Totale per Scatola"
             name="totalPerBox"
+            type="number"
             value={newMedication.totalPerBox}
             onChange={handleInputChange}
-            className="form-control"
+            fullWidth
+            margin="normal"
             required
           />
-        </div>
-        
 
-        <button type="submit" className="btn btn-primary">Aggiungi Farmaco</button>
-        <button
-          type="button"
-          className="btn btn-secondary ms-2"
-          onClick={onRequestClose}
-        >
-          Annulla
-        </button>
-      </form>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              type="submit"
+              sx={{ mr: 2 }}
+            >
+              Aggiungi Farmaco
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={onRequestClose}
+            >
+              Annulla
+            </Button>
+          </Box>
+        </form>
+      </Box>
     </Modal>
   );
 };

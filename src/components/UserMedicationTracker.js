@@ -1,78 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link, Route, Routes } from "react-router-dom";
+import { useParams, Route, Routes } from "react-router-dom";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  Tabs,
+  Tab,
+  Container,
+} from "@mui/material";
 import { fetchMedications, addMedication, updateMedication, refillMedication, deleteMedication } from "../services/api";
 import EditMedicationModal from "./EditMedicationModal";
 import AddMedicationModal from "./AddMedicationModal";
 import { calculateRemainingPills } from "../utils/utils";
-import "bootstrap/dist/css/bootstrap.min.css";
-import Documents from "./Documents";
-
-const Medications = ({ medications, onAdd, onEdit, onRefill, onDelete }) => {
-  return (
-    <>
-      <button
-        className="btn btn-primary mb-4"
-        onClick={onAdd}
-      >
-        Aggiungi Farmaco
-      </button>
-
-      <div className="row gy-4">
-  {medications.map((med, index) => (
-    <div className="col-md-6 col-lg-4" key={index}>
-      <div className="card h-100">
-        <div className="card-body">
-          <h5 className="card-title">{med.name}</h5>
-          <p className="card-text">
-            <strong>Consumo settimanale:</strong>
-            <div className="d-flex flex-wrap">
-              {Object.entries(med.pillsWeek).map(([day, pills]) => (
-                <div
-                  key={day}
-                  className="d-flex align-items-center border rounded p-1 me-2 mb-2"
-                  style={{ minWidth: "100px" }}
-                >
-                  <strong className="me-1">{day}:</strong>
-                  <span>{pills} pillole</span>
-                </div>
-              ))}
-            </div>
-          </p>
-          <p className="card-text">
-            <strong>Totale per scatola:</strong> {med.totalPerBox}
-          </p>
-          <p className="card-text">
-            <strong>Disponibili:</strong> {calculateRemainingPills(med)}
-          </p>
-          <p className="card-text">
-            <strong>Data ultima ricarica:</strong> {med.lastRefillDate}
-          </p>
-          <button
-            className="btn btn-warning btn-sm me-2"
-            onClick={() => onEdit(med)}
-          >
-            Modifica
-          </button>
-          <button
-            className="btn btn-success btn-sm me-2"
-            onClick={() => onRefill(med)}
-          >
-            Ricarica
-          </button>
-          <button
-            className="btn btn-danger btn-sm"
-            onClick={() => onDelete(med)}
-          >
-            Elimina
-          </button>
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
-    </>
-  );
-};
+import Documents from "./AnalisiSangue";
+import Medications from "./Medications";
+import { Link as RouterLink } from "react-router-dom";
 
 const UserMedicationTracker = () => {
   const { userId } = useParams();
@@ -80,6 +23,7 @@ const UserMedicationTracker = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMedication, setEditingMedication] = useState(null);
+  const [selectedTab, setSelectedTab] = useState("medications");
 
   useEffect(() => {
     const getMedications = async () => {
@@ -109,8 +53,8 @@ const UserMedicationTracker = () => {
     setIsEditModalOpen(false);
   };
 
-  const handleRefillMedication = async (med) => {
-    await refillMedication(userId, med._id, calculateRemainingPills(med), med.totalPerBox);
+  const handleRefillMedication = async (med, numOfBox) => {
+    await refillMedication(userId, med._id, calculateRemainingPills(med), numOfBox);
     const medications = await fetchMedications(userId);
     setMedications(medications);
   };
@@ -121,45 +65,72 @@ const UserMedicationTracker = () => {
     setMedications(medications);
   };
 
-  return (
-    <div className="container my-4">
-      <h1 className="text-center mb-4">Gestione Utente</h1>
-      <div className="mb-4">
-        <Link to={`/user/${userId}/medications`} className="btn btn-secondary me-2">
-          Farmaci
-        </Link>
-        <Link to={`/user/${userId}/documents`} className="btn btn-secondary">
-          Documenti
-        </Link>
-      </div>
-      <Routes>
-        <Route
-          path="medications"
-          element={
-            <Medications
-              medications={medications}
-              onAdd={() => setIsAddModalOpen(true)}
-              onEdit={handleEditMedication}
-              onRefill={handleRefillMedication}
-              onDelete={handleDeleteMedication}
-            />
-          }
-        />
-        <Route path="documents" element={<Documents />} />
-      </Routes>
+  const handleTabChange = (event, newValue) => {
+    setSelectedTab(newValue);
+  };
 
-      <AddMedicationModal
-        isOpen={isAddModalOpen}
-        onRequestClose={() => setIsAddModalOpen(false)}
-        onSave={handleAddMedication}
-      />
-      <EditMedicationModal
-        isOpen={isEditModalOpen}
-        onRequestClose={() => setIsEditModalOpen(false)}
-        medication={editingMedication}
-        onSave={handleUpdateMedication}
-      />
-    </div>
+  return (
+    <Box>
+      <AppBar position="static">
+
+        
+        <Tabs
+          value={selectedTab}
+          onChange={handleTabChange}
+          centered
+        >
+
+          <Tab
+            label="Lista Utenti"
+            value="userlist"
+            component={RouterLink}
+            to={`/`}
+          />
+          <Tab
+            label="Farmaci"
+            value="medications"
+            component={RouterLink}
+            to={`/user/${userId}/medications`}
+          />
+          <Tab
+            label="Documenti"
+            value="documents"
+            component={RouterLink}
+            to={`/user/${userId}/documents`}
+          />
+  
+        </Tabs>
+      </AppBar>
+      <Container sx={{ mt: 4 }}>
+        <Routes>
+          <Route
+            path="medications"
+            element={
+              <Medications
+                medications={medications}
+                onAdd={() => setIsAddModalOpen(true)}
+                onEdit={handleEditMedication}
+                onRefill={handleRefillMedication}
+                onDelete={handleDeleteMedication}
+              />
+            }
+          />
+          <Route path="documents" element={<Documents />} />
+        </Routes>
+
+        <AddMedicationModal
+          isOpen={isAddModalOpen}
+          onRequestClose={() => setIsAddModalOpen(false)}
+          onSave={handleAddMedication}
+        />
+        <EditMedicationModal
+          isOpen={isEditModalOpen}
+          onRequestClose={() => setIsEditModalOpen(false)}
+          medication={editingMedication}
+          onSave={handleUpdateMedication}
+        />
+      </Container>
+    </Box>
   );
 };
 
