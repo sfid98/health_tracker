@@ -1,5 +1,5 @@
 const express = require("express");
-const mongoose = require("mongoose");
+const { MongoClient, ObjectId } = require("mongodb");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -10,138 +10,158 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/medications";
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-mongoose.connection.on("connected", () => {
-  console.log("MongoDB connected!");
-});
-  
-// Schema principale con un array di farmaci
-const medicationSchema = new mongoose.Schema({
-  name: String,
-  pillsWeek: {
-    type: Map,
-    of: Number, // Ogni giorno è una chiave con un valore numerico (pillole)
-    required: true,
-  },
-  totalPerBox: Number,
-  lastRefillDate: String,
-  availableSinceLastRefill: Number,
-  userId: mongoose.Schema.Types.ObjectId, // Associazione all'utente
-});
+const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/";
+const dbName = "health_tracker"; // Nome del database
+let db;
 
-const userSchema = new mongoose.Schema({
-  name: String,
-});
+MongoClient.connect(mongoURI)
+  .then((client) => {
+    console.log("MongoDB connected!");
+    db = client.db(dbName);
+  })
+  .catch((error) => console.error("Errore nella connessione a MongoDB:", error));
 
-const Medication = mongoose.model("Medication", medicationSchema);
-const User = mongoose.model("Users", userSchema);
+// Endpoints
 
-
-
+// Crea un farmaco per un utente specifico
 app.post("/api/users/:userId/medications", async (req, res) => {
   try {
     const userId = req.params.userId;
-    const medication = new Medication(req.body);
-    medication.userId = userId
-    await medication.save();
-    res.status(200).send(medication);
+    const medication = { ...req.body, userId: new ObjectId(userId) };
+    const result = await db.collection("medications").insertOne(medication);
+    res.status(200).send(result.ops[0]);
   } catch (error) {
-    console.log(error)
+    console.error(error);
     res.status(500).send("Errore durante l'aggiunta del farmaco.");
   }
 });
 
-
-
+// Recupera tutti gli utenti
 app.get("/api/users", async (req, res) => {
   try {
-    const users = await User.find(); // Recupera tutti gli utenti
+    const users = await db.collection("users").find().toArray();
     res.json(users);
   } catch (error) {
     res.status(500).send("Errore nel recupero degli utenti.");
   }
 });
 
-
+// Recupera tutti i farmaci di un utente
 app.get("/api/users/:userId/medications", async (req, res) => {
   try {
     const userId = req.params.userId;
-    const medications = await Medication.find({ userId }); // Assumendo che ogni farmaco abbia un campo userId
+    const medications = await db
+      .collection("medications")
+      .find({ userId: new ObjectId(userId) })
+      .toArray();
     res.json(medications);
   } catch (error) {
     res.status(500).send("Errore nel recupero dei farmaci.");
   }
 });
 
-
-// Endpoint per aggiornare un farmaco
+// Aggiorna un farmaco
 app.put("/api/users/:userId/medications/:medicationId", async (req, res) => {
   try {
-
-    console.log(req.params)
     const { userId, medicationId } = req.params;
     const updatedMedication = req.body;
 
-    // Verifica che il farmaco appartenga all'utente specificato
-    const medication = await Medication.findOne({ _id: medicationId, userId });
+    const result = await db.collection("medications").findOneAndUpdate(
+      { _id: new ObjectId(medicationId), userId: new ObjectId(userId) },
+      { $set: updatedMedication },
+      { returnDocument: "after" }
+    );
 
-    if (!medication) {
+    if (!result.value) {
       return res.status(404).send("Farmaco non trovato o non associato a questo utente.");
     }
-
-    // Aggiorna il farmaco
-    Object.assign(medication, updatedMedication);
-    await medication.save();
-
-    res.status(200).send(medication);
+    res.status(200).send(result.value);
   } catch (error) {
     console.error(error);
     res.status(500).send("Errore durante l'aggiornamento del farmaco.");
   }
 });
 
-
-// Endpoint per aggiornare la data di ultima ricarica
+// Aggiorna la data di ultima ricarica
 app.put("/api/users/:userId/medications/:medicationId/remainingPills/:remainingPills/numOfBox/:numOfBox/refill", async (req, res) => {
   try {
-    const { userId, medicationId, remainingPills,numOfBox } = req.params;
+    const { userId, medicationId, remainingPills, numOfBox } = req.params;
 
-    const medication = await Medication.findOne({ _id: medicationId, userId });
+    const medication = await db.collection("medications").findOne({
+      _id: new ObjectId(medicationId),
+      userId: new ObjectId(userId),
+    });
 
     if (!medication) {
       return res.status(404).send("Farmaco non trovato o non associato a questo utente.");
     }
-    console.log(medication)
-    medication.lastRefillDate = new Date().toISOString().split("T")[0];
-    medication.availableSinceLastRefill = Number(remainingPills) + Number(medication.totalPerBox*numOfBox);
-    await medication.save();
 
-    res.status(200).send(medication);
+    const availableSinceLastRefill =
+      Number(remainingPills) + Number(medication.totalPerBox) * Number(numOfBox);
+
+    const result = await db.collection("medications").findOneAndUpdate(
+      { _id: new ObjectId(medicationId), userId: new ObjectId(userId) },
+      {
+        $set: {
+          lastRefillDate: new Date().toISOString().split("T")[0],
+          availableSinceLastRefill,
+        },
+      },
+      { returnDocument: "after" }
+    );
+
+    res.status(200).send(result.value);
   } catch (error) {
     console.error(error);
     res.status(500).send("Errore durante l'aggiornamento della data di ricarica.");
   }
 });
 
+// Elimina un farmaco
 app.delete("/api/users/:userId/medications/:medicationId", async (req, res) => {
   try {
     const { userId, medicationId } = req.params;
-    const medication = await Medication.findOneAndDelete({
-      _id: medicationId,
-      userId: userId,
+
+    const result = await db.collection("medications").findOneAndDelete({
+      _id: new ObjectId(medicationId),
+      userId: new ObjectId(userId),
     });
 
-    if (!medication) {
+    if (!result) {
       return res.status(404).send("Farmaco non trovato o non associato a questo utente.");
     }
-    res.status(200).send({ message: "Farmaco eliminato con successo.", medication });
+    res.status(200).send({ message: "Farmaco eliminato con successo.", medication: result.value });
   } catch (error) {
     console.error("Errore durante l'eliminazione del farmaco:", error);
     res.status(500).send("Errore durante l'eliminazione del farmaco.");
+  }
+});
+
+
+//Diabete
+
+app.get("/api/users/:userId/diabete", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const diabete = await db
+      .collection("diabete")
+      .find({ userId: new ObjectId(userId) })
+      .toArray();
+    res.json(diabete);
+  } catch (error) {
+    res.status(500).send("Errore nel recupero delle misurazioni .");
+  }
+});
+
+app.post("/api/users/:userId/diabete", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const diabete = { ...req.body, userId: new ObjectId(userId) };
+    const result = await db.collection("diabete").insertOne(diabete);
+    res.status(200).send(result.ops[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Errore durante l'aggiunta della misurazione.");
   }
 });
 

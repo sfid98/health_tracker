@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Route, Routes } from "react-router-dom";
 import {
-  AppBar,
-  Toolbar,
-  Typography,
   Box,
-  Tabs,
-  Tab,
   Container,
 } from "@mui/material";
 import { fetchMedications, addMedication, updateMedication, refillMedication, deleteMedication } from "../services/api";
@@ -15,15 +10,14 @@ import AddMedicationModal from "./AddMedicationModal";
 import { calculateRemainingPills } from "../utils/utils";
 import Documents from "./AnalisiSangue";
 import Medications from "./Medications";
-import { Link as RouterLink } from "react-router-dom";
-
+import Diabete from "./Diabete";
+import NavBar from "./NavBar";
 const UserMedicationTracker = () => {
   const { userId } = useParams();
   const [medications, setMedications] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingMedication, setEditingMedication] = useState(null);
-  const [selectedTab, setSelectedTab] = useState("medications");
 
   useEffect(() => {
     const getMedications = async () => {
@@ -65,42 +59,10 @@ const UserMedicationTracker = () => {
     setMedications(medications);
   };
 
-  const handleTabChange = (event, newValue) => {
-    setSelectedTab(newValue);
-  };
 
   return (
     <Box>
-      <AppBar position="static">
-
-        
-        <Tabs
-          value={selectedTab}
-          onChange={handleTabChange}
-          centered
-        >
-
-          <Tab
-            label="Lista Utenti"
-            value="userlist"
-            component={RouterLink}
-            to={`/`}
-          />
-          <Tab
-            label="Farmaci"
-            value="medications"
-            component={RouterLink}
-            to={`/user/${userId}/medications`}
-          />
-          <Tab
-            label="Documenti"
-            value="documents"
-            component={RouterLink}
-            to={`/user/${userId}/documents`}
-          />
-  
-        </Tabs>
-      </AppBar>
+      <NavBar />
       <Container sx={{ mt: 4 }}>
         <Routes>
           <Route
@@ -116,6 +78,8 @@ const UserMedicationTracker = () => {
             }
           />
           <Route path="documents" element={<Documents />} />
+
+          <Route path="diabete" element={<Diabete />} />
         </Routes>
 
         <AddMedicationModal

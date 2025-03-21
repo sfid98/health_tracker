@@ -73,3 +73,23 @@ export const updateMedication = async (userId, medicationId, updatedMedication) 
       throw error;
     }
   }
+
+
+
+  export const fetchDiabeteMeasurements = async (userId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users/${userId}/diabete`);
+      return response.data;
+    } catch (error) {
+      console.error("Errore durante il recupero delle misurazioni:", error);
+      return [];
+    }
+  };
+
+  export const addDiabeteMeasurement = async (userId, measurement) => {
+    try {
+      await axios.post(`${API_BASE_URL}/users/${userId}/diabete`, measurement);
+    } catch (error) {
+      console.error("Errore durante l'aggiunta della misurazione:", error);
+    }
+  }
