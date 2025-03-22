@@ -95,6 +95,23 @@ export const updateMedication = async (userId, medicationId, updatedMedication) 
   }
 
 
+  export const fetchBloodWorkMeasurements = async (userId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users/${userId}/bloodwork`);
+      return response.data;
+    } catch (error) {
+      console.error("Errore durante il recupero delle misurazioni:", error);
+      return [];
+    }
+  }
+
+  export const addBloodWorkMeasurement = async (userId, measurement) => {
+    try {
+      await axios.post(`${API_BASE_URL}/users/${userId}/bloodwork`, measurement);
+    } catch (error) {
+      console.error("Errore durante l'aggiunta della misurazione:", error);
+    }
+  }
 
   export const addUser = async (user) => {
     try {

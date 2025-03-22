@@ -7,11 +7,8 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   Button,
   Box,
-  TextField,
-
 } from "@mui/material";
 
 import {addUser} from "../services/api";
@@ -51,7 +48,6 @@ const UserList = () => {
         {users.map((user) => (
           <ListItem key={user._id} divider>
             <ListItemText primary={user.name + ' ' + user.surname } />
-            <ListItemSecondaryAction>
               <Button
                 component={Link}
                 to={`/user/${user._id}/medications`}
@@ -61,7 +57,6 @@ const UserList = () => {
               >
                 Visualizza Farmaci
               </Button>
-            </ListItemSecondaryAction>
           </ListItem>
         ))}
       </List>

@@ -29,7 +29,7 @@ app.post("/api/users/:userId/medications", async (req, res) => {
     const userId = req.params.userId;
     const medication = { ...req.body, userId: new ObjectId(userId) };
     const result = await db.collection("medications").insertOne(medication);
-    res.status(200).send(result.ops[0]);
+    res.status(200).send(result);
   } catch (error) {
     console.error(error);
     res.status(500).send("Errore durante l'aggiunta del farmaco.");
@@ -172,6 +172,35 @@ app.post("/api/users/:userId/diabete", async (req, res) => {
     const diabete = { ...req.body, userId: new ObjectId(userId) };
     const result = await db.collection("diabete").insertOne(diabete);
     res.status(200).send(result.ops[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Errore durante l'aggiunta della misurazione.");
+  }
+});
+
+
+//blood work
+
+app.get("/api/users/:userId/bloodwork", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const bloodWork = await db
+      .collection("bloodWork")
+      .find({ userId: new ObjectId(userId) })
+      .toArray();
+    res.json(bloodWork);
+  } catch (error) {
+    res.status(500).send("Errore nel recupero delle misurazioni .");
+  }
+});
+
+
+app.post("/api/users/:userId/bloodwork", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const bloodWork = { ...req.body, userId: new ObjectId(userId) };
+    const result = await db.collection("bloodWork").insertOne(bloodWork);
+    res.status(200).send(result);
   } catch (error) {
     console.error(error);
     res.status(500).send("Errore durante l'aggiunta della misurazione.");
