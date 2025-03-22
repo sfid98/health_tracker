@@ -1,7 +1,7 @@
 const express = require("express");
+const { MongoClient, ObjectId } = require("mongodb");
 const cors = require("cors");
 require("dotenv").config();
-const axios = require("axios");
 
 const app = express();
 
@@ -9,51 +9,53 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// CouchDB Connection
-const couchDBUrl = process.env.COUCHDB_URL || "http://admin:admin@couchdb:5984";
-const usersDB = `${couchDBUrl}/users`;
-const medicationsDB = `${couchDBUrl}/medications`;
-const diabeteDB = `${couchDBUrl}/diabete`;
+// MongoDB Connection
+const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/";
+const dbName = "health_tracker"; // Nome del database
+let db;
 
-// Funzione di supporto per gestire errori di CouchDB
-const handleCouchError = (error, res) => {
-  console.error("CouchDB error:", error.response?.data || error.message);
-  res.status(500).send("Errore nel database.");
-};
+MongoClient.connect(mongoURI)
+  .then((client) => {
+    console.log("MongoDB connected!");
+    db = client.db(dbName);
+  })
+  .catch((error) => console.error("Errore nella connessione a MongoDB:", error));
 
 // Endpoints
 
+// Crea un farmaco per un utente specifico
+app.post("/api/users/:userId/medications", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const medication = { ...req.body, userId: new ObjectId(userId) };
+    const result = await db.collection("medications").insertOne(medication);
+    res.status(200).send(result.ops[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Errore durante l'aggiunta del farmaco.");
+  }
+});
+
 // Crea un utente
+
 app.post("/api/users", async (req, res) => {
   try {
     const user = req.body;
-    const response = await axios.post(usersDB, user);
-    res.status(200).send(response.data);
+    const result = await db.collection("users").insertOne(user);
+    res.status(200).send(result);
   } catch (error) {
-    handleCouchError(error, res);
+    console.error(error);
+    res.status(500).send("Errore durante la creazione dell'utente.");
   }
 });
 
 // Recupera tutti gli utenti
 app.get("/api/users", async (req, res) => {
   try {
-    console.log(`${usersDB}/_all_docs?include_docs=true`)
-    const response = await axios.get(`${usersDB}/_all_docs?include_docs=true`);
-    const users = response.data.rows.map((row) => row.doc);
+    const users = await db.collection("users").find().toArray();
     res.json(users);
   } catch (error) {
-    handleCouchError(error, res);
-  }
-});
-
-// Crea un farmaco per un utente specifico
-app.post("/api/users/:userId/medications", async (req, res) => {
-  try {
-    const medication = { ...req.body, userId: req.params.userId };
-    const response = await axios.post(medicationsDB, medication);
-    res.status(200).send(response.data);
-  } catch (error) {
-    handleCouchError(error, res);
+    res.status(500).send("Errore nel recupero degli utenti.");
   }
 });
 
@@ -61,16 +63,13 @@ app.post("/api/users/:userId/medications", async (req, res) => {
 app.get("/api/users/:userId/medications", async (req, res) => {
   try {
     const userId = req.params.userId;
-
-    const response = await axios.post(`${medicationsDB}/_find`, {
-      selector: {
-        userId: userId,
-      },
-    });
-    
-    res.json(response.data.docs);
+    const medications = await db
+      .collection("medications")
+      .find({ userId: new ObjectId(userId) })
+      .toArray();
+    res.json(medications);
   } catch (error) {
-    handleCouchError(error, res);
+    res.status(500).send("Errore nel recupero dei farmaci.");
   }
 });
 
@@ -78,99 +77,111 @@ app.get("/api/users/:userId/medications", async (req, res) => {
 app.put("/api/users/:userId/medications/:medicationId", async (req, res) => {
   try {
     const { userId, medicationId } = req.params;
-    const medication = req.body;
+    const updatedMedication = req.body;
 
-    // Recupera il farmaco esistente
-    const existing = await axios.get(`${medicationsDB}/${medicationId}`);
-    const updated = { ...existing.data, ...medication, userId };
+    const result = await db.collection("medications").findOneAndUpdate(
+      { _id: new ObjectId(medicationId), userId: new ObjectId(userId) },
+      { $set: updatedMedication },
+      { returnDocument: "after" }
+    );
 
-    // Aggiorna il documento
-    const response = await axios.put(`${medicationsDB}/${medicationId}`, updated);
-    res.status(200).send(response.data);
+    if (!result.value) {
+      return res.status(404).send("Farmaco non trovato o non associato a questo utente.");
+    }
+    res.status(200).send(result.value);
   } catch (error) {
-    handleCouchError(error, res);
+    console.error(error);
+    res.status(500).send("Errore durante l'aggiornamento del farmaco.");
+  }
+});
+
+// Aggiorna la data di ultima ricarica
+app.put("/api/users/:userId/medications/:medicationId/remainingPills/:remainingPills/numOfBox/:numOfBox/refill", async (req, res) => {
+  try {
+    const { userId, medicationId, remainingPills, numOfBox } = req.params;
+
+    const medication = await db.collection("medications").findOne({
+      _id: new ObjectId(medicationId),
+      userId: new ObjectId(userId),
+    });
+
+    if (!medication) {
+      return res.status(404).send("Farmaco non trovato o non associato a questo utente.");
+    }
+
+    const availableSinceLastRefill =
+      Number(remainingPills) + Number(medication.totalPerBox) * Number(numOfBox);
+
+    const result = await db.collection("medications").findOneAndUpdate(
+      { _id: new ObjectId(medicationId), userId: new ObjectId(userId) },
+      {
+        $set: {
+          lastRefillDate: new Date().toISOString().split("T")[0],
+          availableSinceLastRefill,
+        },
+      },
+      { returnDocument: "after" }
+    );
+
+    res.status(200).send(result.value);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Errore durante l'aggiornamento della data di ricarica.");
   }
 });
 
 // Elimina un farmaco
 app.delete("/api/users/:userId/medications/:medicationId", async (req, res) => {
   try {
-    const { medicationId } = req.params;
+    const { userId, medicationId } = req.params;
 
-    // Recupera il farmaco esistente
-    const existing = await axios.get(`${medicationsDB}/${medicationId}`);
-
-    // Elimina il documento
-    const response = await axios.delete(`${medicationsDB}/${medicationId}`, {
-      params: { rev: existing.data._rev },
+    const result = await db.collection("medications").findOneAndDelete({
+      _id: new ObjectId(medicationId),
+      userId: new ObjectId(userId),
     });
 
-    res.status(200).send({ message: "Farmaco eliminato con successo.", medication: response.data });
-  } catch (error) {
-    handleCouchError(error, res);
-  }
-});
-
-
-app.put("/api/users/:userId/medications/:medicationId/remainingPills/:remainingPills/numOfBox/:numOfBox/refill", async (req, res) => {
-  try {
-    const { userId, medicationId, remainingPills, numOfBox } = req.params;
-
-    // Trova il farmaco specifico
-    const medicationResponse = await axios.get(`${medicationsDB}/${medicationId}`);
-    const medication = medicationResponse.data;
-
-    if (!medication || medication.userId !== userId) {
+    if (!result) {
       return res.status(404).send("Farmaco non trovato o non associato a questo utente.");
     }
-
-    // Calcola le pillole disponibili dall'ultima ricarica
-    const availableSinceLastRefill =
-      Number(remainingPills) + Number(medication.totalPerBox) * Number(numOfBox);
-
-    // Aggiorna il documento del farmaco
-    medication.lastRefillDate = new Date().toISOString().split("T")[0];
-    medication.availableSinceLastRefill = availableSinceLastRefill;
-
-    const updateResponse = await axios.put(`${medicationsDB}/${medicationId}`, medication);
-
-    res.status(200).send(updateResponse.data);
+    res.status(200).send({ message: "Farmaco eliminato con successo.", medication: result.value });
   } catch (error) {
-    console.error("Errore durante l'aggiornamento della data di ricarica:", error.response?.data || error.message);
-    res.status(500).send("Errore durante l'aggiornamento della data di ricarica.");
+    console.error("Errore durante l'eliminazione del farmaco:", error);
+    res.status(500).send("Errore durante l'eliminazione del farmaco.");
   }
 });
 
 
-// Aggiungi o aggiorna una misurazione di diabete
-app.post("/api/users/:userId/diabete", async (req, res) => {
-  try {
-    const diabete = { ...req.body, userId: req.params.userId };
-    const response = await axios.post(diabeteDB, diabete);
-    res.status(200).send(response.data);
-  } catch (error) {
-    handleCouchError(error, res);
-  }
-});
+//Diabete
 
-// Recupera tutte le misurazioni di diabete di un utente
 app.get("/api/users/:userId/diabete", async (req, res) => {
   try {
-    const userId = req.params.userId
-    const response = await axios.post(`${diabeteDB}/_find`, {
-      selector: {
-        userId: userId,
-      },
-    });
-
-    res.json(response.data.docs);
+    const userId = req.params.userId;
+    const diabete = await db
+      .collection("diabete")
+      .find({ userId: new ObjectId(userId) })
+      .toArray();
+    res.json(diabete);
   } catch (error) {
-    handleCouchError(error, res);
+    res.status(500).send("Errore nel recupero delle misurazioni .");
+  }
+});
+
+app.post("/api/users/:userId/diabete", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const diabete = { ...req.body, userId: new ObjectId(userId) };
+    const result = await db.collection("diabete").insertOne(diabete);
+    res.status(200).send(result.ops[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Errore durante l'aggiunta della misurazione.");
   }
 });
 
 // Avvia il server
-const PORT = process.env.PORT || 5500;
-app.listen(PORT, "0.0.0.0", () => {
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
   console.log(`Server avviato sulla porta ${PORT}`);
 });
+
+
