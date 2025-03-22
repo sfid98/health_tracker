@@ -9,10 +9,27 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Button,
+  Box,
+  TextField,
+
 } from "@mui/material";
+
+import {addUser} from "../services/api";
+
+import AddUserModal from "./AddUserModal";
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+
+  const handleAddUser = async (newUser) => {
+    await addUser(newUser);
+    const users = await fetchUsers();
+    setUsers(users);
+    setIsAddModalOpen(false);
+  }
 
   useEffect(() => {
     const getUsers = async () => {
@@ -24,6 +41,8 @@ const UserList = () => {
   }, []);
 
   return (
+
+    <Box>
     <Container maxWidth="sm" style={{ marginTop: "2rem" }}>
       <Typography variant="h4" component="h1" align="center" gutterBottom>
         Elenco Utenti
@@ -31,7 +50,7 @@ const UserList = () => {
       <List>
         {users.map((user) => (
           <ListItem key={user._id} divider>
-            <ListItemText primary={user.name} />
+            <ListItemText primary={user.name + ' ' + user.surname } />
             <ListItemSecondaryAction>
               <Button
                 component={Link}
@@ -46,7 +65,30 @@ const UserList = () => {
           </ListItem>
         ))}
       </List>
+
+
+      <Button 
+    variant="contained"
+    color="primary"
+    size="small"
+    onClick={() => setIsAddModalOpen(true)}
+    >
+      Aggiungi Utente
+    </Button>
     </Container>
+
+    <AddUserModal
+    isOpen={isAddModalOpen}
+    onRequestClose={() => setIsAddModalOpen(false)}
+    onSave={handleAddUser}
+    />
+
+
+
+
+
+    </Box>
+    
   );
 };
 

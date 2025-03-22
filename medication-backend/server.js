@@ -36,6 +36,19 @@ app.post("/api/users/:userId/medications", async (req, res) => {
   }
 });
 
+// Crea un utente
+
+app.post("/api/users", async (req, res) => {
+  try {
+    const user = req.body;
+    const result = await db.collection("users").insertOne(user);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Errore durante la creazione dell'utente.");
+  }
+});
+
 // Recupera tutti gli utenti
 app.get("/api/users", async (req, res) => {
   try {
@@ -170,3 +183,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server avviato sulla porta ${PORT}`);
 });
+
+
+

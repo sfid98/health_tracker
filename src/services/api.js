@@ -93,3 +93,13 @@ export const updateMedication = async (userId, medicationId, updatedMedication) 
       console.error("Errore durante l'aggiunta della misurazione:", error);
     }
   }
+
+
+
+  export const addUser = async (user) => {
+    try {
+      await axios.post(`${API_BASE_URL}/users`, user);
+    } catch (error) {
+      console.error("Errore durante l'aggiunta dell'utente:", error);
+    }
+  }
